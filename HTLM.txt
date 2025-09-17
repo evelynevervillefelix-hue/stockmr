@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock MR - Gestion de Véhicules</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f8f9fa; }
+        header { background: #2c3e50; color: white; padding: 15px; text-align: center; }
+        nav { display: flex; background: #34495e; }
+        nav button { flex: 1; padding: 15px; border: none; background: #34495e; color: white; cursor: pointer; }
+        nav button.active { background: #3498db; }
+        .container { padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background: #2c3e50; color: white; }
+        .btn { padding: 5px 10px; margin: 2px; border: none; cursor: pointer; border-radius: 5px; }
+        .btn-add { background: #27ae60; color: white; }
+        .btn-edit { background: #f39c12; color: white; }
+        .btn-delete { background: #e74c3c; color: white; }
+        .btn-refresh { background: #3498db; color: white; margin-bottom: 10px; }
+        .hidden { display: none; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 20px; border-radius: 10px; max-width: 500px; width: 90%; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .form-actions { text-align: right; margin-top: 20px; }
+        .form-actions button { margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🚗 Stock MR 📑</h1>
+        <p>Ton tableau de bord collaboratif</p>
+    </header>
+
+    <nav>
+        <button class="tab-btn active" onclick="showTab('stock')">🚗 Stock</button>
+        <button class="tab-btn" onclick="showTab('factures')">📑 Factures</button>
+    </nav>
+
+    <div class="container">
+        <!-- STOCK -->
+        <div id="stock-tab" class="tab-content">
+            <h2>🚗 Gestion du Stock</h2>
+            <button class="btn btn-refresh" onclick="loadStock()">🔄 Rafraîchir</button>
+            <button class="btn btn-add" onclick="showVehicleForm()">➕ Ajouter</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>MR</th><th>Marque</th><th>Modèle</th><th>Année</th><th>NIV</th><th>Coût</th><th>Statut</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="stock-table"></tbody>
+            </table>
+        </div>
+
+        <!-- FACTURES -->
+        <div id="factures-tab" class="tab-content hidden">
+            <h2>📑 Gestion des Factures</h2>
+            <button class="btn btn-refresh" onclick="loadInvoices()">🔄 Rafraîchir</button>
+            <button class="btn btn-add" onclick="showInvoiceForm()">➕ Ajouter</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type de dépense</th><th>Date</th><th>No Facture</th><th>Description</th><th>Montant</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoices-table"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Formulaire véhicule -->
+    <div id="vehicle-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="vehicle-modal-title">➕ Ajouter Véhicule</h2>
+            <form id="vehicle-form">
+                <div class="form-group">
+                    <label>MR *</label>
+                    <input type="text" id="vehicle-mr" required>
+                </div>
+                <div class="form-group">
+                    <label>Marque *</label>
+                    <input type="text" id="vehicle-marque" required>
+                </div>
+                <div class="form-group">
+                    <label>Modèle *</label>
+                    <input type="text" id="vehicle-modele" required>
+                </div>
+                <div class="form-group">
+                    <label>Année *</label>
+                    <input type="text" id="vehicle-annee" required>
+                </div>
+                <div class="form-group">
+                    <label>NIV *</label>
+                    <input type="text" id="vehicle-niv" required>
+                </div>
+                <div class="form-group">
+                    <label>Coût ($) *</label>
+                    <input type="text" id="vehicle-cout" required>
+                </div>
+                <div class="form-group">
+                    <label>Statut</label>
+                    <select id="vehicle-statut">
+                        <option value="En stock">En stock</option>
+                        <option value="Vendu">Vendu</option>
+                        <option value="En réparation">En réparation</option>
+                        <option value="Réservé">Réservé</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" onclick="hideVehicleForm()">Annuler</button>
+                    <button type="submit">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Formulaire facture -->
+    <div id="invoice-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="invoice-modal-title">➕ Ajouter Facture</h2>
+            <form id="invoice-form">
+                <div class="form-group">
+                    <label>Type de dépense *</label>
+                    <select id="invoice-type" required>
+                        <option value="">Sélectionner un type</option>
+                        <option value="Réparation">Réparation</option>
+                        <option value="Entretien">Entretien</option>
+                        <option value="Pièces">Pièces</option>
+                        <option value="Assurance">Assurance</option>
+                        <option value="Taxe">Taxe</option>
+                        <option value="Autre">Autre</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="invoice-date" required>
+                </div>
+                <div class="form-group">
+                    <label>No facture *</label>
+                    <input type="text" id="invoice-number" required>
+                </div>
+                <div class="form-group">
+                    <label>MR lié</label>
+                    <input type="text" id="invoice-mr">
+                </div>
+                <div class="form-group">
+                    <label>Description *</label>
+                    <textarea id="invoice-description" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Montant ($) *</label>
+                    <input type="number" id="invoice-amount" step="0.01" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" onclick="hideInvoiceForm()">Annuler</button>
+                    <button type="submit">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Données de démonstration
+        let stock = [
+            { MR: 'MR000', Marque: 'CARAVAN', Modèle: '(33584)', Année: '2012', NIV: '370926', Coût: '8007.96', Statut: 'Vendu' },
+            { MR: 'MR001', Marque: 'MAZDA', Modèle: '3', Année: '2007', NIV: '703028', Coût: '1500', Statut: 'En stock' },
+            { MR: 'MR002', Marque: 'CIVIC', Modèle: '', Année: '2010', NIV: '006441', Coût: '1400', Statut: 'Vendu' }
+        ];
+
+        let invoices = [
+            { "Type de dépense": "Réparation", "Date": "2023-01-15", "No facture": "F001", "Description": "Réparation moteur", "Montant ($)": "500" },
+            { "Type de dépense": "Entretien", "Date": "2023-01-20", "No facture": "F002", "Description": "Changement d'huile", "Montant ($)": "100" },
+            { "Type de dépense": "Pièces", "Date": "2023-01-25", "No facture": "F003", "Description": "Pneus neufs", "Montant ($)": "800" }
+        ];
+
+        // Fonctions de navigation
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            event.target.classList.add('active');
+        }
+
+        // Fonctions pour le stock
+        function loadStock() {
+            const tbody = document.getElementById('stock-table');
+            tbody.innerHTML = '';
+            
+            stock.forEach((vehicle, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${vehicle.MR}</td>
+                    <td>${vehicle.Marque}</td>
+                    <td>${vehicle.Modèle}</td>
+                    <td>${vehicle.Année}</td>
+                    <td>${vehicle.NIV}</td>
+                    <td>${vehicle.Coût} $</td>
+                    <td>${vehicle.Statut}</td>
+                    <td>
+                        <button class="btn btn-edit" onclick="editVehicle(${index})">✏️</button>
+                        <button class="btn btn-delete" onclick="deleteVehicle(${index})">🗑️</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Fonctions pour les factures
+        function loadInvoices() {
+            const tbody = document.getElementById('invoices-table');
+            tbody.innerHTML = '';
+            
+            invoices.forEach((invoice, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${invoice["Type de dépense"]}</td>
+                    <td>${invoice["Date"]}</td>
+                    <td>${invoice["No facture"]}</td>
+                    <td>${invoice["Description"]}</td>
+                    <td>${invoice["Montant ($)"]} $</td>
+                    <td>
+                        <button class="btn btn-edit" onclick="editInvoice(${index})">✏️</button>
+                        <button class="btn btn-delete" onclick="deleteInvoice(${index})">🗑️</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Fonctions modales
+        function showVehicleForm() {
+            document.getElementById('vehicle-modal').classList.remove('hidden');
+            document.getElementById('vehicle-modal-title').textContent = '➕ Ajouter Véhicule';
+            document.getElementById('vehicle-form').reset();
+        }
+
+        function hideVehicleForm() {
+            document.getElementById('vehicle-modal').classList.add('hidden');
+        }
+
+        function showInvoiceForm() {
+            document.getElementById('invoice-modal').classList.remove('hidden');
+            document.getElementById('invoice-modal-title').textContent = '➕ Ajouter Facture';
+            document.getElementById('invoice-form').reset();
+        }
+
+        function hideInvoiceForm() {
+            document.getElementById('invoice-modal').classList.add('hidden');
+        }
+
+        // Fonctions de formulaire
+        document.getElementById('vehicle-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const vehicle = {
+                MR: document.getElementById('vehicle-mr').value,
+                Marque: document.getElementById('vehicle-marque').value,
+                Modèle: document.getElementById('vehicle-modele').value,
+                Année: document.getElementById('vehicle-annee').value,
+                NIV: document.getElementById('vehicle-niv').value,
+                Coût: document.getElementById('vehicle-cout').value,
+                Statut: document.getElementById('vehicle-statut').value
+            };
+            
+            stock.push(vehicle);
+            loadStock();
+            hideVehicleForm();
+        });
+
+        document.getElementById('invoice-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const invoice = {
+                "Type de dépense": document.getElementById('invoice-type').value,
+                "Date": document.getElementById('invoice-date').value,
+                "No facture": document.getElementById('invoice-number').value,
+                "Description": document.getElementById('invoice-description').value,
+                "Montant ($)": document.getElementById('invoice-amount').value
+            };
+            
+            invoices.push(invoice);
+            loadInvoices();
+            hideInvoiceForm();
+        });
+
+        // Fonctions de modification et suppression
+        function editVehicle(index) {
+            const vehicle = stock[index];
+            document.getElementById('vehicle-mr').value = vehicle.MR;
+            document.getElementById('vehicle-marque').value = vehicle.Marque;
+            document.getElementById('vehicle-modele').value = vehicle.Modèle;
+            document.getElementById('vehicle-annee').value = vehicle.Année;
+            document.getElementById('vehicle-niv').value = vehicle.NIV;
+            document.getElementById('vehicle-cout').value = vehicle.Coût;
+            document.getElementById('vehicle-statut').value = vehicle.Statut;
+            
+            document.getElementById('vehicle-modal-title').textContent = '✏️ Modifier Véhicule';
+            document.getElementById('vehicle-modal').classList.remove('hidden');
+        }
+
+        function deleteVehicle(index) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce véhicule ?')) {
+                stock.splice(index, 1);
+                loadStock();
+            }
+        }
+
+        function editInvoice(index) {
+            const invoice = invoices[index];
+            document.getElementById('invoice-type').value = invoice["Type de dépense"];
+            document.getElementById('invoice-date').value = invoice["Date"];
+            document.getElementById('invoice-number').value = invoice["No facture"];
+            document.getElementById('invoice-description').value = invoice["Description"];
+            document.getElementById('invoice-amount').value = invoice["Montant ($)"];
+            
+            document.getElementById('invoice-modal-title').textContent = '✏️ Modifier Facture';
+            document.getElementById('invoice-modal').classList.remove('hidden');
+        }
+
+        function deleteInvoice(index) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
+                invoices.splice(index, 1);
+                loadInvoices();
+            }
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStock();
+            loadInvoices();
+        });
+    </script>
+</body>
+</html>
