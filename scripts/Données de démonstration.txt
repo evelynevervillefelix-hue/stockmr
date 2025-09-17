@@ -1,0 +1,203 @@
+// Données de démonstration
+let vehicles = [
+  { id: 1, mr: 'MR000', marque: 'CARAVAN', modele: '(33584)', annee: 2012, cout: 8007.96, statut: 'Vendu' },
+  { id: 2, mr: 'MR001', marque: 'MAZDA', modele: '3', annee: 2007, cout: 1500, statut: 'En stock' },
+  { id: 3, mr: 'MR002', marque: 'CIVIC', modele: '', annee: 2010, cout: 1400, statut: 'Vendu' },
+  { id: 4, mr: 'MR003', marque: 'YARIS', modele: '', annee: 2010, cout: 800, statut: 'Vendu' },
+  { id: 5, mr: 'MR004', marque: 'ESCAPE', modele: '', annee: 2015, cout: 2800, statut: 'En stock' }
+];
+
+let invoices = [
+  { id: 1, type: 'Réparation', date: '2023-01-15', numero: 'F001', description: 'Réparation moteur', montant: 500 },
+  { id: 2, type: 'Entretien', date: '2023-01-20', numero: 'F002', description: 'Changement d\'huile', montant: 100 },
+  { id: 3, type: 'Pièces', date: '2023-01-25', numero: 'F003', description: 'Pneus neufs', montant: 800 }
+];
+
+let currentEditId = null;
+let currentMode = 'vehicle';
+
+// Fonctions de navigation
+function showTab(tab) {
+  document.querySelectorAll('.section').forEach(section => {
+    section.classList.remove('active');
+  });
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  document.getElementById(tab + '-section').classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Fonctions pour les véhicules
+function renderVehicles() {
+  const tbody = document.querySelector('#vehicles-table tbody');
+  tbody.innerHTML = '';
+  
+  vehicles.forEach(vehicle => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${vehicle.mr}</td>
+      <td>${vehicle.marque}</td>
+      <td>${vehicle.modele}</td>
+      <td>${vehicle.annee}</td>
+      <td>$${vehicle.cout.toLocaleString()}</td>
+      <td><span class="status ${vehicle.statut}">${vehicle.statut}</span></td>
+      <td>
+        <button class="btn btn-secondary" onclick="editVehicle(${vehicle.id})">✏️</button>
+        <button class="btn btn-secondary" onclick="deleteVehicle(${vehicle.id})">🗑️</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function addVehicle() {
+  currentMode = 'vehicle';
+  currentEditId = null;
+  document.getElementById('modal-title').textContent = 'Ajouter Véhicule';
+  document.getElementById('modal-form').reset();
+  document.getElementById('modal').style.display = 'block';
+}
+
+function editVehicle(id) {
+  currentMode = 'vehicle';
+  currentEditId = id;
+  const vehicle = vehicles.find(v => v.id === id);
+  
+  document.getElementById('modal-title').textContent = 'Modifier Véhicule';
+  document.getElementById('mr').value = vehicle.mr;
+  document.getElementById('marque').value = vehicle.marque;
+  document.getElementById('modele').value = vehicle.modele;
+  document.getElementById('annee').value = vehicle.annee;
+  document.getElementById('cout').value = vehicle.cout;
+  document.getElementById('statut').value = vehicle.statut;
+  document.getElementById('modal').style.display = 'block';
+}
+
+function deleteVehicle(id) {
+  if (confirm('Êtes-vous sûr de vouloir supprimer ce véhicule ?')) {
+    vehicles = vehicles.filter(v => v.id !== id);
+    renderVehicles();
+  }
+}
+
+// Fonctions pour les factures
+function renderInvoices() {
+  const tbody = document.querySelector('#invoices-table tbody');
+  tbody.innerHTML = '';
+  
+  invoices.forEach(invoice => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${invoice.type}</td>
+      <td>${invoice.date}</td>
+      <td>${invoice.numero}</td>
+      <td>${invoice.description}</td>
+      <td>$${invoice.montant}</td>
+      <td>
+        <button class="btn btn-secondary" onclick="editInvoice(${invoice.id})">✏️</button>
+        <button class="btn btn-secondary" onclick="deleteInvoice(${invoice.id})">🗑️</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function addInvoice() {
+  currentMode = 'invoice';
+  currentEditId = null;
+  document.getElementById('modal-title').textContent = 'Ajouter Facture';
+  document.getElementById('modal-form').reset();
+  document.getElementById('modal').style.display = 'block';
+}
+
+function editInvoice(id) {
+  currentMode = 'invoice';
+  currentEditId = id;
+  const invoice = invoices.find(i => i.id === id);
+  
+  document.getElementById('modal-title').textContent = 'Modifier Facture';
+  document.getElementById('mr').value = invoice.type;
+  document.getElementById('marque').value = invoice.date;
+  document.getElementById('modele').value = invoice.numero;
+  document.getElementById('annee').value = invoice.description;
+  document.getElementById('cout').value = invoice.montant;
+  document.getElementById('modal').style.display = 'block';
+}
+
+function deleteInvoice(id) {
+  if (confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
+    invoices = invoices.filter(i => i.id !== id);
+    renderInvoices();
+  }
+}
+
+// Fonctions communes
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+
+function refreshData() {
+  renderVehicles();
+  alert('Données rafraîchies !');
+}
+
+// Gestion du formulaire
+document.getElementById('modal-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const formData = {
+    mr: document.getElementById('mr').value,
+    marque: document.getElementById('marque').value,
+    modele: document.getElementById('modele').value,
+    annee: parseInt(document.getElementById('annee').value),
+    cout: parseFloat(document.getElementById('cout').value),
+    statut: document.getElementById('statut').value
+  };
+  
+  if (currentMode === 'vehicle') {
+    if (currentEditId) {
+      // Modifier
+      const index = vehicles.findIndex(v => v.id === currentEditId);
+      vehicles[index] = { ...vehicles[index], ...formData };
+    } else {
+      // Ajouter
+      vehicles.push({ id: Date.now(), ...formData });
+    }
+    renderVehicles();
+  } else {
+    // Pour les factures (simplifié)
+    const invoiceData = {
+      type: formData.mr,
+      date: formData.marque,
+      numero: formData.modele,
+      description: formData.annee.toString(),
+      montant: formData.cout
+    };
+    
+    if (currentEditId) {
+      const index = invoices.findIndex(i => i.id === currentEditId);
+      invoices[index] = { ...invoices[index], ...invoiceData };
+    } else {
+      invoices.push({ id: Date.now(), ...invoiceData });
+    }
+    renderInvoices();
+  }
+  
+  closeModal();
+});
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+  renderVehicles();
+  renderInvoices();
+});
+
+// Fermer le modal en cliquant dehors
+window.onclick = function(event) {
+  const modal = document.getElementById('modal');
+  if (event.target === modal) {
+    closeModal();
+  }
+}
