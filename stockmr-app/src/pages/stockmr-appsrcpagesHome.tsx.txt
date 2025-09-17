@@ -1,0 +1,14 @@
+stockmr-app/src/pages/Home.tsx
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <h1 className="text-4xl font-bold text-center mb-8">🚗 Stock MR 📑</h1>
+      <p className="text-center text-gray-600">Application de gestion de stock et factures</p>
+      <div className="mt-8 text-center">
+        <button className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600">
+          Voir les véhicules (79)
+        </button>
+      </div>
+    </div>
+  )
+}
