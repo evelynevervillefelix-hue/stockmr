@@ -1,0 +1,1597 @@
+    <!-- MODAL FACTURES PAR VEHICULE -->
+    <div id="factures-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="hideFacturesModal()">&times;</button>
+            <div class="modal-title" id="factures-modal-title">Factures du véhicule</div>
+            <div id="factures-vehicule-table"></div>
+            <div class="form-actions">
+                <button class="btn btn-add" onclick="addFactureToVehicule()">Ajouter une facture</button>
+            </div>
+        </div>
+    </div>
+// --- Gestion des factures par véhicule ---
+let facturesParVehicule = {};
+
+function showFacturesModal(mr) {
+    document.getElementById('factures-modal-title').textContent = `Factures du véhicule ${mr}`;
+    document.getElementById('factures-modal').classList.add('active');
+    renderFacturesVehiculeTable(mr);
+    document.getElementById('factures-modal').setAttribute('data-mr', mr);
+}
+
+function hideFacturesModal() {
+    document.getElementById('factures-modal').classList.remove('active');
+}
+
+function renderFacturesVehiculeTable(mr) {
+    const factures = facturesParVehicule[mr] || [];
+    let html = `<table style='width:100%;margin-bottom:10px'><thead><tr><th>Date</th><th>No Facture</th><th>Description</th><th>Montant</th><th>Actions</th></tr></thead><tbody>`;
+    factures.forEach((f, i) => {
+        html += `<tr><td>${f.date||''}</td><td>${f.numero||''}</td><td>${f.description||''}</td><td>${f.montant||''}</td><td><button class='btn-small btn-edit' onclick='editFactureVehicule(${i})'>✏️</button> <button class='btn-small btn-delete' onclick='deleteFactureVehicule(${i})'>🗑️</button></td></tr>`;
+    });
+    html += `</tbody></table>`;
+    document.getElementById('factures-vehicule-table').innerHTML = html;
+}
+
+function addFactureToVehicule() {
+    const mr = document.getElementById('factures-modal').getAttribute('data-mr');
+    if (!facturesParVehicule[mr]) facturesParVehicule[mr] = [];
+    facturesParVehicule[mr].push({date:'',numero:'',description:'',montant:''});
+    renderFacturesVehiculeTable(mr);
+}
+
+function editFactureVehicule(index) {
+    alert('Fonction d\'édition de facture à venir (sera collaborative avec Firebase)');
+}
+
+function deleteFactureVehicule(index) {
+    const mr = document.getElementById('factures-modal').getAttribute('data-mr');
+    if (confirm('Supprimer cette facture ?')) {
+        facturesParVehicule[mr].splice(index, 1);
+        renderFacturesVehiculeTable(mr);
+    }
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock MR - Gestion Complète</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: rgba(44, 62, 80, 0.95);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+
+        .stat-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .stat-card:nth-child(1) .stat-icon { color: #3498db; }
+        .stat-card:nth-child(2) .stat-icon { color: #2ecc71; }
+        .stat-card:nth-child(3) .stat-icon { color: #e74c3c; }
+        .stat-card:nth-child(4) .stat-icon { color: #f39c12; }
+
+        .stat-number {
+            font-size: 3.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #333, #666);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 1.1em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        /* Navigation */
+        nav {
+            background: rgba(52, 73, 94, 0.95);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .nav-buttons {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        nav button {
+            flex: 1;
+            min-width: 150px;
+            padding: 18px;
+            border: none;
+            background: transparent;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+
+        nav button::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: #3498db;
+            transition: width 0.3s ease;
+        }
+
+        nav button:hover {
+            background: rgba(52, 152, 219, 0.2);
+        }
+
+        nav button.active {
+            background: rgba(52, 152, 219, 0.3);
+            color: #3498db;
+        }
+
+        nav button.active::after {
+            width: 100%;
+        }
+
+        /* Content */
+        .tab-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .tab-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .tab-title {
+            font-size: 2em;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .btn-refresh {
+            background: #3498db;
+        }
+
+        .btn-refresh:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+
+        .btn-add:hover {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            transform: translateY(-2px);
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #ecf0f1;
+            transition: background 0.3s ease;
+            font-size: 0.85em;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-en-stock {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-vendu {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-reparation {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-reserve {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .action-buttons-cell {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 6px 8px;
+            font-size: 0.8em;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .btn-edit {
+            background: #f39c12;
+        }
+
+        .btn-edit:hover {
+            background: #e67e22;
+            transform: translateY(-1px);
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+        }
+
+        .btn-delete:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        /* Search */
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        /* Modals */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 35px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            position: relative;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-title {
+            font-size: 1.8em;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            padding: 12px 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .btn-cancel {
+            background: #95a5a6;
+        }
+
+        .btn-cancel:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+
+        .btn-save:hover {
+            background: linear-gradient(135deg, #2980b9, #21618c);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2.2em;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .stat-card {
+                padding: 25px;
+            }
+
+            .stat-number {
+                font-size: 2.8em;
+            }
+
+            nav {
+                border-radius: 10px;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+
+            nav button {
+                padding: 15px;
+            }
+
+            .tab-content {
+                padding: 20px;
+            }
+
+            .tab-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .tab-title {
+                font-size: 1.6em;
+                margin-bottom: 15px;
+            }
+
+            .action-buttons {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .btn {
+                flex: 1;
+                justify-content: center;
+            }
+
+            th, td {
+                padding: 8px 6px;
+                font-size: 0.75em;
+            }
+
+            .action-buttons-cell {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                padding: 25px;
+                width: 95%;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stat-card {
+            animation: fadeIn 0.6s ease forwards;
+            opacity: 0;
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+        /* Profit colors */
+        .profit-positive { color: #27ae60; font-weight: bold; }
+        .profit-negative { color: #e74c3c; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚗 Stock MR - Système Complet 📑</h1>
+            <p class="subtitle">Gestion Intelligente de Véhicules - 79 Véhicules</p>
+        </header>
+
+        <!-- Dashboard -->
+        <div class="dashboard">
+            <div class="stat-card" onclick="showTab('dashboard')">
+                <span class="stat-icon">🚗</span>
+                <div class="stat-number" id="total-stock-count">33</div>
+                <div class="stat-label">Véhicules en Stock</div>
+            </div>
+            
+            <div class="stat-card" onclick="showTab('dashboard')">
+                <span class="stat-icon">✅</span>
+                <div class="stat-number" id="total-sold-count">46</div>
+                <div class="stat-label">Véhicules Vendus</div>
+            </div>
+            
+            <div class="stat-card" onclick="showTab('dashboard')">
+                <span class="stat-icon">💰</span>
+                <div class="stat-number" id="total-stock-value">$251,846</div>
+                <div class="stat-label">Valeur du Stock</div>
+            </div>
+            
+            <div class="stat-card" onclick="showTab('dashboard')">
+                <span class="stat-icon">📈</span>
+                <div class="stat-number" id="total-profit-value">$145,942</div>
+                <div class="stat-label">Profit Total</div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav>
+            <div class="nav-buttons">
+                <button class="tab-btn active" onclick="showTab('stock')">🚗 Stock Complet</button>
+                <button class="tab-btn" onclick="showTab('factures')">📑 Factures</button>
+                <button class="tab-btn" onclick="showTab('dashboard')">📊 Dashboard</button>
+            </div>
+        </nav>
+
+        <!-- STOCK avec Grid.js -->
+        <div id="stock-tab" class="tab-content">
+            <div class="tab-header">
+                <h2 class="tab-title">🚗 Stock Complet - 79 Véhicules</h2>
+                <div class="action-buttons no-print">
+                    <button class="btn btn-refresh" onclick="refreshGrid()">
+                        <i class="fas fa-sync-alt"></i> Rafraîchir
+                    </button>
+                    <button class="btn btn-add" onclick="addRowToGrid()">
+                        <i class="fas fa-plus"></i> Ajouter
+                    </button>
+                </div>
+            </div>
+            <div id="gridjs-stock" class="table-container"></div>
+        </div>
+
+        <!-- FACTURES -->
+        <div id="factures-tab" class="tab-content hidden">
+            <div class="tab-header">
+                <h2 class="tab-title">📑 Gestion des Factures</h2>
+                <div class="action-buttons no-print">
+                    <button class="btn btn-refresh" onclick="loadInvoices()">
+                        <i class="fas fa-sync-alt"></i> Rafraîchir
+                    </button>
+                    <button class="btn btn-add" onclick="showInvoiceForm()">
+                        <i class="fas fa-plus"></i> Ajouter
+                    </button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>No Facture</th>
+                            <th>MR lié</th>
+                            <th>Description</th>
+                            <th>Montant</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoices-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Dashboard détaillé -->
+        <div id="dashboard-tab" class="tab-content hidden">
+            <div class="tab-header">
+                <h2 class="tab-title">📊 Tableau de Bord Détaillé</h2>
+                <div class="action-buttons no-print">
+                    <button class="btn btn-refresh" onclick="updateDashboard()">
+                        <i class="fas fa-sync-alt"></i> Actualiser
+                    </button>
+                </div>
+            </div>
+            
+            <div class="dashboard">
+                <div class="stat-card">
+                    <span class="stat-icon">📊</span>
+                    <div class="stat-number" id="total-vehicles">79</div>
+                    <div class="stat-label">Total Véhicules</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">💰</span>
+                    <div class="stat-number" id="total-cost">$412,847</div>
+                    <div class="stat-label">Coût Total Achats</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">💵</span>
+                    <div class="stat-number" id="total-sales">$558,789</div>
+                    <div class="stat-label">Vente Totale</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">📈</span>
+                    <div class="stat-number" id="average-profit">$3,172</div>
+                    <div class="stat-label">Profit Moyen</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire véhicule -->
+    <div id="vehicle-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="hideVehicleForm()">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 class="modal-title" id="vehicle-modal-title">➕ Ajouter Véhicule</h2>
+            <form id="vehicle-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">MR *</label>
+                        <input type="text" id="vehicle-mr" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Marque *</label>
+                        <input type="text" id="vehicle-marque" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Modèle *</label>
+                        <input type="text" id="vehicle-modele" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Année *</label>
+                        <input type="text" id="vehicle-annee" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">NIV *</label>
+                        <input type="text" id="vehicle-niv" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Coût ($) *</label>
+                        <input type="number" id="vehicle-cout" class="form-input" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Prix Vente ($)</label>
+                        <input type="number" id="vehicle-prix-vente" class="form-input" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Statut</label>
+                        <select id="vehicle-statut" class="form-select">
+                            <option value="En stock">En stock</option>
+                            <option value="Vendu">Vendu</option>
+                            <option value="En réparation">En réparation</option>
+                            <option value="Réservé">Réservé</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date Achat</label>
+                        <input type="date" id="vehicle-date-achat" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Fournisseur</label>
+                        <input type="text" id="vehicle-fournisseur" class="form-input">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Notes</label>
+                        <textarea id="vehicle-notes" class="form-textarea" placeholder="Notes supplémentaires (optionnel)"></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-cancel" onclick="hideVehicleForm()">Annuler</button>
+                    <button type="submit" class="btn btn-save">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Formulaire facture -->
+    <div id="invoice-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="hideInvoiceForm()">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 class="modal-title" id="invoice-modal-title">➕ Ajouter Facture</h2>
+            <form id="invoice-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Type de dépense *</label>
+                        <select id="invoice-type" class="form-select" required>
+                            <option value="">Sélectionner un type</option>
+                            <option value="Réparation">Réparation</option>
+                            <option value="Entretien">Entretien</option>
+                            <option value="Pièces">Pièces</option>
+                            <option value="Assurance">Assurance</option>
+                            <option value="Taxe">Taxe</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date *</label>
+                        <input type="date" id="invoice-date" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">No facture *</label>
+                        <input type="text" id="invoice-number" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">MR lié</label>
+                        <input type="text" id="invoice-mr" class="form-input">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">Description *</label>
+                        <textarea id="invoice-description" class="form-textarea" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Montant ($) *</label>
+                        <input type="number" id="invoice-amount" class="form-input" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Fournisseur</label>
+                        <input type="text" id="invoice-supplier" class="form-input">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-cancel" onclick="hideInvoiceForm()">Annuler</button>
+                    <button type="submit" class="btn btn-save">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Données complètes des 79 véhicules basées sur votre fichier
+        let stock = [
+            {
+                MR: 'MR000', Marque: 'CARAVAN', Modèle: '(33584)', Année: '2012', NIV: '370926',
+                Coût: 8007.96, PrixVente: 7495.00, Statut: 'Vendu',
+                DateAchat: '2024-07-15', Fournisseur: 'MÉGA CENTRE D\'OCCASION'
+            },
+            {
+                MR: 'MR001', Marque: 'MAZDA', Modèle: '3', Année: '2007', NIV: '703028',
+                Coût: 1500.00, PrixVente: 3773.42, Statut: 'En stock',
+                DateAchat: '2025-05-01', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR002', Marque: 'CIVIC', Modèle: '', Année: '2010', NIV: '006441',
+                Coût: 1400.00, PrixVente: 5808.72, Statut: 'Vendu',
+                DateAchat: '2025-05-06', Fournisseur: 'NISSAN TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR003', Marque: 'YARIS', Modèle: '', Année: '2010', NIV: '323157',
+                Coût: 800.00, PrixVente: 1761.90, Statut: 'Vendu',
+                DateAchat: '2025-05-06', Fournisseur: 'NISSAN TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR004', Marque: 'ESCAPE', Modèle: '', Année: '2015', NIV: 'C48819',
+                Coût: 2800.00, PrixVente: 3603.13, Statut: 'En stock',
+                DateAchat: '2025-05-06', Fournisseur: 'NISSAN TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR005', Marque: 'VENZA', Modèle: '', Année: '2011', NIV: '051471',
+                Coût: 3500.00, PrixVente: 6814.50, Statut: 'En stock',
+                DateAchat: '2025-05-06', Fournisseur: 'NISSAN TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR006', Marque: 'FIAT 500', Modèle: '', Année: '2012', NIV: '377496',
+                Coût: 6000.00, PrixVente: 8087.81, Statut: 'Vendu',
+                DateAchat: '2025-05-12', Fournisseur: 'ACHAT PORTE'
+            },
+            {
+                MR: 'MR007', Marque: 'VIBE', Modèle: '', Année: '2006', NIV: '436542',
+                Coût: 1000.00, PrixVente: 2426.96, Statut: 'Vendu',
+                DateAchat: '2025-05-12', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR008', Marque: 'MATRIX', Modèle: '', Année: '2009', NIV: '003473',
+                Coût: 1000.00, PrixVente: 4367.35, Statut: 'Vendu',
+                DateAchat: '2025-05-12', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR009', Marque: 'VERSA', Modèle: '', Année: '2011', NIV: '386302',
+                Coût: 1000.00, PrixVente: 2295.71, Statut: 'En stock',
+                DateAchat: '2025-05-13', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR010', Marque: 'CARAVAN', Modèle: '', Année: '2011', NIV: 'R75404',
+                Coût: 2000.00, PrixVente: 2397.51, Statut: 'Vendu',
+                DateAchat: '2025-05-13', Fournisseur: 'NISSAN SHAWINIGAN'
+            },
+            {
+                MR: 'MR011', Marque: 'G5', Modèle: '', Année: '2009', NIV: '248472',
+                Coût: 3000.00, PrixVente: 4441.26, Statut: 'Vendu',
+                DateAchat: '2025-05-16', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR012', Marque: 'ESCAPE', Modèle: '', Année: '2013', NIV: 'A05274',
+                Coût: 2460.00, PrixVente: 5103.46, Statut: 'Vendu',
+                DateAchat: '2025-05-16', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR013', Marque: 'CADILLAC', Modèle: '', Année: '2013', NIV: '119637',
+                Coût: 6000.00, PrixVente: 7595.25, Statut: 'Vendu',
+                DateAchat: '2025-05-23', Fournisseur: 'HYUNDAI TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR014', Marque: 'ALLURE', Modèle: '', Année: '2009', NIV: '118410',
+                Coût: 1600.00, PrixVente: 4328.97, Statut: 'Vendu',
+                DateAchat: '2025-05-23', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR015', Marque: 'ESCAPE', Modèle: '', Année: '2009', NIV: 'C37443',
+                Coût: 500.00, PrixVente: 500.00, Statut: 'Vendu',
+                DateAchat: '2025-05-29', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR016', Marque: 'LANCER', Modèle: '', Année: '2010', NIV: '602306',
+                Coût: 3500.00, PrixVente: 4938.50, Statut: 'Vendu',
+                DateAchat: '2025-05-29', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR017', Marque: 'COROLLA', Modèle: '', Année: '1999', NIV: '747668',
+                Coût: 500.00, PrixVente: 500.00, Statut: 'Vendu',
+                DateAchat: '2025-05-29', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR018', Marque: 'ELANTRA', Modèle: '', Année: '2011', NIV: '039742',
+                Coût: 500.00, PrixVente: 500.00, Statut: 'Vendu',
+                DateAchat: '2025-05-29', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR019', Marque: 'RONDO', Modèle: '', Année: '2014', NIV: '040448',
+                Coût: 2000.00, PrixVente: 2249.34, Statut: 'En stock',
+                DateAchat: '2025-06-02', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR020', Marque: 'LEGACY', Modèle: '', Année: '2013', NIV: '007396',
+                Coût: 4000.00, PrixVente: 4937.75, Statut: 'Vendu',
+                DateAchat: '2025-06-02', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR021', Marque: 'MALIBU', Modèle: '', Année: '2011', NIV: '364135',
+                Coût: 1750.00, PrixVente: 2244.73, Statut: 'En stock',
+                DateAchat: '2025-06-03', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR022', Marque: 'SORENTO', Modèle: '', Année: '2014', NIV: '500136',
+                Coût: 2000.00, PrixVente: 5433.79, Statut: 'Vendu',
+                DateAchat: '2025-06-03', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR023', Marque: 'PATHFINDER', Modèle: '', Année: '2014', NIV: '693826',
+                Coût: 4000.00, PrixVente: 7685.19, Statut: 'Vendu',
+                DateAchat: '2025-06-05', Fournisseur: 'AUTRE ACHAT EXTERNE'
+            },
+            {
+                MR: 'MR024', Marque: 'ELANTRA', Modèle: '', Année: '2017', NIV: '158179',
+                Coût: 2500.00, PrixVente: 5915.34, Statut: 'Vendu',
+                DateAchat: '2025-06-05', Fournisseur: 'NISSAN CHOMEDEY'
+            },
+            {
+                MR: 'MR025', Marque: 'SOUL', Modèle: '', Année: '2010', NIV: '112054',
+                Coût: 1200.00, PrixVente: 3240.75, Statut: 'Vendu',
+                DateAchat: '2025-06-06', Fournisseur: 'NISSAN TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR026', Marque: 'GOLF', Modèle: '', Année: '2015', NIV: '514151',
+                Coût: 5000.00, PrixVente: 6339.58, Statut: 'Vendu',
+                DateAchat: '2025-06-06', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR027', Marque: 'SPORTAGE', Modèle: '', Année: '2007', NIV: '340476',
+                Coût: 1000.00, PrixVente: 3240.53, Statut: 'Vendu',
+                DateAchat: '2025-06-11', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR028', Marque: 'ACCORD', Modèle: '', Année: '2014', NIV: '801228',
+                Coût: 5000.00, PrixVente: 6068.29, Statut: 'Vendu',
+                DateAchat: '2025-06-11', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR029', Marque: '128I', Modèle: '', Année: '2009', NIV: 'J76063',
+                Coût: 6000.00, PrixVente: 7893.79, Statut: 'Vendu',
+                DateAchat: '2025-06-17', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR030', Marque: 'CX7', Modèle: '', Année: '2010', NIV: '352016',
+                Coût: 600.00, PrixVente: 1816.50, Statut: 'Vendu',
+                DateAchat: '2025-06-17', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR031', Marque: 'SENTRA', Modèle: '', Année: '2013', NIV: '741979',
+                Coût: 3000.00, PrixVente: 7627.27, Statut: 'Vendu',
+                DateAchat: '2025-06-19', Fournisseur: 'VOLVO TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR032', Marque: 'MAZDA 3', Modèle: '', Année: '2011', NIV: '387272',
+                Coût: 2000.00, PrixVente: 2773.74, Statut: 'Vendu',
+                DateAchat: '2025-06-20', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR033', Marque: 'TRAX', Modèle: '', Année: '2015', NIV: '182072',
+                Coût: 5000.00, PrixVente: 6412.42, Statut: 'Vendu',
+                DateAchat: '2025-06-18', Fournisseur: 'NISSAN TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR034', Marque: 'JETTA', Modèle: '', Année: '2011', NIV: '108891',
+                Coût: 1300.00, PrixVente: 2738.43, Statut: 'Vendu',
+                DateAchat: '2025-07-02', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR035', Marque: 'PATHFINDER', Modèle: '', Année: '2014', NIV: '632721',
+                Coût: 1500.00, PrixVente: 1500.00, Statut: 'Vendu',
+                DateAchat: '2025-07-02', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR036', Marque: 'AVEO', Modèle: '', Année: '2008', NIV: '092642',
+                Coût: 500.00, PrixVente: 500.00, Statut: 'Vendu',
+                DateAchat: '2025-07-04', Fournisseur: 'VOLVO TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR037', Marque: 'XC60', Modèle: '', Année: '2016', NIV: '843796',
+                Coût: 6500.00, PrixVente: 7040.00, Statut: 'Vendu',
+                DateAchat: '2025-07-04', Fournisseur: 'VOLVO TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR038', Marque: 'COROLLA', Modèle: '', Année: '2011', NIV: '657719',
+                Coût: 2900.00, PrixVente: 3821.20, Statut: 'Vendu',
+                DateAchat: '2025-07-07', Fournisseur: 'NISSAN SHAWINIGAN'
+            },
+            {
+                MR: 'MR039', Marque: 'CIVIC', Modèle: '', Année: '2010', NIV: '036421',
+                Coût: 5250.00, PrixVente: 6098.28, Statut: 'Vendu',
+                DateAchat: '2025-07-08', Fournisseur: 'VOLVO TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR040', Marque: 'YARIS', Modèle: '', Année: '2009', NIV: '273618',
+                Coût: 1200.00, PrixVente: 3768.52, Statut: 'En stock',
+                DateAchat: '2025-07-08', Fournisseur: 'NISSAN TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR041', Marque: 'TUCSON', Modèle: '', Année: '2022', NIV: '060728',
+                Coût: 28649.00, PrixVente: 29379.67, Statut: 'Vendu',
+                DateAchat: '2025-07-09', Fournisseur: 'HYUNDAI TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR042', Marque: 'SANTA FE', Modèle: '', Année: '2012', NIV: '121467',
+                Coût: 2700.00, PrixVente: 4068.43, Statut: 'Vendu',
+                DateAchat: '2025-07-15', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR043', Marque: 'EQUINOX', Modèle: '', Année: '2011', NIV: '222382',
+                Coût: 2500.00, PrixVente: 3771.84, Statut: 'Vendu',
+                DateAchat: '2025-07-15', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR044', Marque: 'FIAT 500', Modèle: '', Année: '2012', NIV: '379539',
+                Coût: 5500.00, PrixVente: 5500.00, Statut: 'Vendu',
+                DateAchat: '2025-07-24', Fournisseur: 'ACHAT PORTE'
+            },
+            {
+                MR: 'MR045', Marque: 'CIVIC', Modèle: '', Année: '2012', NIV: '030082',
+                Coût: 5500.00, PrixVente: 5938.16, Statut: 'Vendu',
+                DateAchat: '2025-07-24', Fournisseur: 'ACHAT PORTE'
+            },
+            {
+                MR: 'MR046', Marque: 'C30', Modèle: '', Année: '2010', NIV: '180902',
+                Coût: 3000.00, PrixVente: 4426.82, Statut: 'En stock',
+                DateAchat: '2025-07-25', Fournisseur: 'HYUNDAI TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR047', Marque: 'MAZDA2', Modèle: '', Année: '2012', NIV: '150721',
+                Coût: 1850.00, PrixVente: 2792.48, Statut: 'Vendu',
+                DateAchat: '2025-07-25', Fournisseur: 'NISSAN SHAWINIGAN'
+            },
+            {
+                MR: 'MR048', Marque: 'ELANTRA', Modèle: '', Année: '2010', NIV: '177577',
+                Coût: 1000.00, PrixVente: 2871.36, Statut: 'Vendu',
+                DateAchat: '2025-07-28', Fournisseur: 'VOLVO TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR049', Marque: 'TUCSON', Modèle: '', Année: '2022', NIV: '069943',
+                Coût: 26180.00, PrixVente: 30050.00, Statut: 'Vendu',
+                DateAchat: '2025-07-28', Fournisseur: 'HYUNDAI TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR050', Marque: 'F250', Modèle: '', Année: '2011', NIV: 'B54983',
+                Coût: 18000.00, PrixVente: 19956.93, Statut: 'Vendu',
+                DateAchat: '2025-07-29', Fournisseur: 'HYUNDAI TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR051', Marque: 'SANTA FE', Modèle: '', Année: '2014', NIV: '176529',
+                Coût: 10500.00, PrixVente: 10500.00, Statut: 'Vendu',
+                DateAchat: '2025-07-28', Fournisseur: 'HYUNDAI TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR052', Marque: 'RIO', Modèle: '', Année: '2016', NIV: '640662',
+                Coût: 7000.00, PrixVente: 7400.77, Statut: 'Vendu',
+                DateAchat: '2025-07-28', Fournisseur: 'ACHAT PORTE'
+            },
+            {
+                MR: 'MR053', Marque: 'A5', Modèle: '', Année: '2012', NIV: '002389',
+                Coût: 6000.00, PrixVente: 7425.00, Statut: 'Vendu',
+                DateAchat: '2025-07-28', Fournisseur: 'ACHAT PORTE'
+            },
+            {
+                MR: 'MR054', Marque: 'VERSA', Modèle: '', Année: '2007', NIV: '979964',
+                Coût: 1500.00, PrixVente: 1600.00, Statut: 'Vendu',
+                DateAchat: '2025-07-28', Fournisseur: 'ACHAT PORTE'
+            },
+            {
+                MR: 'MR055', Marque: 'CARAVAN', Modèle: '', Année: '2012', NIV: '370926',
+                Coût: 5345.00, PrixVente: 5345.00, Statut: 'En stock',
+                DateAchat: '2025-07-31', Fournisseur: 'ACHAT PORTE'
+            },
+            {
+                MR: 'MR056', Marque: 'MAZDA 6', Modèle: '', Année: '2014', NIV: '114091',
+                Coût: 3050.00, PrixVente: 5123.42, Statut: 'Vendu',
+                DateAchat: '2025-07-29', Fournisseur: 'NISSAN SHAWINIGAN'
+            },
+            {
+                MR: 'MR057', Marque: 'SENTRA', Modèle: '', Année: '2018', NIV: '327430',
+                Coût: 7000.00, PrixVente: 7240.16, Statut: 'Vendu',
+                DateAchat: '2025-07-29', Fournisseur: 'NISSAN SHAWINIGAN'
+            },
+            {
+                MR: 'MR058', Marque: 'FIT', Modèle: '', Année: '2014', NIV: '004439',
+                Coût: 1300.00, PrixVente: 1400.00, Statut: 'Vendu',
+                DateAchat: '2025-07-30', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR059', Marque: 'MAZDA CX7', Modèle: '', Année: '2011', NIV: '382779',
+                Coût: 2000.00, PrixVente: 2703.89, Statut: 'Vendu',
+                DateAchat: '2025-08-05', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR060', Marque: 'SEDONA', Modèle: '', Année: '2020', NIV: '568677',
+                Coût: 3000.00, PrixVente: 3000.00, Statut: 'Vendu',
+                DateAchat: '2025-08-06', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR061', Marque: 'SORENTO', Modèle: '', Année: '2013', NIV: '411494',
+                Coût: 3000.00, PrixVente: 3000.00, Statut: 'En stock',
+                DateAchat: '2025-08-07', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR062', Marque: 'FJ CRUISER', Modèle: '', Année: '2007', NIV: '097398',
+                Coût: 14500.00, PrixVente: 15309.38, Statut: 'Vendu',
+                DateAchat: '2025-08-07', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR063', Marque: 'ESCAPE SE', Modèle: '', Année: '2017', NIV: 'A05996',
+                Coût: 9000.00, PrixVente: 11144.76, Statut: 'Vendu',
+                DateAchat: '2025-08-12', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR064', Marque: 'ESCAPE SE', Modèle: '', Année: '2014', NIV: 'A16875',
+                Coût: 6700.00, PrixVente: 7127.71, Statut: 'Vendu',
+                DateAchat: '2025-08-12', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR065', Marque: 'LEXUS RC 350', Modèle: '', Année: '2020', NIV: '5010234',
+                Coût: 15000.00, PrixVente: 15100.00, Statut: 'Vendu',
+                DateAchat: '2025-08-14', Fournisseur: 'ACHAT PORTE'
+            },
+            {
+                MR: 'MR066', Marque: 'MAZDA 3', Modèle: '', Année: '2008', NIV: '413456',
+                Coût: 1000.00, PrixVente: 1736.00, Statut: 'En stock',
+                DateAchat: '', Fournisseur: 'MAZDA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR067', Marque: 'VOLKS JETTA', Modèle: '', Année: '2013', NIV: '286972',
+                Coût: 5000.00, PrixVente: 5100.00, Statut: 'En stock',
+                DateAchat: '', Fournisseur: 'AUTRE ACHAT EXTERNE'
+            },
+            {
+                MR: 'MR068', Marque: 'VENUE', Modèle: '', Année: '2020', NIV: '030506',
+                Coût: 4800.00, PrixVente: 4900.00, Statut: 'En stock',
+                DateAchat: '', Fournisseur: 'NISSAN TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR069', Marque: 'MAZDA 3 SPORT', Modèle: '', Année: '2010', NIV: '157208',
+                Coût: 1500.00, PrixVente: 1600.00, Statut: 'En stock',
+                DateAchat: '', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR070', Marque: 'MINI COUNTRYMAN S', Modèle: '', Année: '2014', NIV: 'P35990',
+                Coût: 7000.00, PrixVente: 7100.00, Statut: 'En stock',
+                DateAchat: '', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR071', Marque: 'ELANTRA', Modèle: '', Année: '2013', NIV: '207630',
+                Coût: 2000.00, PrixVente: 2100.00, Statut: 'En stock',
+                DateAchat: '', Fournisseur: 'AUTRE ACHAT EXTERNE'
+            },
+            {
+                MR: 'MR072', Marque: 'JOURNEY', Modèle: '', Année: '2016', NIV: '168051',
+                Coût: 2000.00, PrixVente: 2100.00, Statut: 'Vendu',
+                DateAchat: 'CANCELLER', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR073', Marque: 'JETTA', Modèle: '', Année: '2014', NIV: '275974',
+                Coût: 3800.00, PrixVente: 3800.00, Statut: 'En stock',
+                DateAchat: '2025-09-05', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR074', Marque: 'FIAT 500', Modèle: '', Année: '2012', NIV: '111287',
+                Coût: 1000.00, PrixVente: 1000.00, Statut: 'En stock',
+                DateAchat: '', Fournisseur: 'KIA TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR075', Marque: 'COLORADO', Modèle: '', Année: '2015', NIV: '205012',
+                Coût: 6000.00, PrixVente: 6000.00, Statut: 'En stock',
+                DateAchat: '2025-09-08', Fournisseur: 'VOLVO TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR076', Marque: 'EOS', Modèle: '', Année: '2008', NIV: '053139',
+                Coût: 3500.00, PrixVente: 3500.00, Statut: 'En stock',
+                DateAchat: '2025-09-09', Fournisseur: 'NISSAN TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR077', Marque: 'PASSAT', Modèle: '', Année: '2016', NIV: '022459',
+                Coût: 8500.00, PrixVente: 8500.00, Statut: 'En stock',
+                DateAchat: '2025-09-09', Fournisseur: 'VOLVO TROIS-RIVIÈRES'
+            },
+            {
+                MR: 'MR078', Marque: 'MALIBU', Modèle: '', Année: '2011', NIV: '332617',
+                Coût: 500.00, PrixVente: 600.00, Statut: 'En stock',
+                DateAchat: '2025-09-10', Fournisseur: 'ACHAT PORTE'
+            },
+            {
+                MR: 'MR079', Marque: 'EQUINOX', Modèle: '', Année: '2005', NIV: '107544',
+                Coût: 300.00, PrixVente: 400.00, Statut: 'En stock',
+                DateAchat: '2025-08-29', Fournisseur: 'ACHAT PORTE'
+            }
+        ];
+
+        let invoices = [
+            { "Type de dépense": "Réparation", "Date": "2023-01-15", "No facture": "F001", "MR": "MR001", "Description": "Réparation moteur", "Montant ($)": 500 },
+            { "Type de dépense": "Entretien", "Date": "2023-01-20", "No facture": "F002", "MR": "MR002", "Description": "Changement d'huile", "Montant ($)": 100 },
+            { "Type de dépense": "Pièces", "Date": "2023-01-25", "No facture": "F003", "MR": "MR003", "Description": "Pneus neufs", "Montant ($)": 800 }
+        ];
+
+        // Fonctions de navigation
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            event.target.classList.add('active');
+            
+            if (tabName === 'dashboard') {
+                updateDashboard();
+            }
+        }
+
+        // Fonctions pour le dashboard
+        function updateDashboard() {
+            const enStock = stock.filter(v => v.Statut === 'En stock');
+            const vendus = stock.filter(v => v.Statut === 'Vendu');
+            const enReparation = stock.filter(v => v.Statut === 'En réparation');
+            const reserves = stock.filter(v => v.Statut === 'Réservé');
+            
+            // Mise à jour des statistiques principales
+            document.getElementById('total-stock-count').textContent = enStock.length;
+            document.getElementById('total-sold-count').textContent = vendus.length;
+            document.getElementById('total-stock-value').textContent = '$' + enStock.reduce((sum, v) => sum + v.Coût, 0).toLocaleString();
+            
+            // Calcul des profits
+            const profitVendus = vendus.reduce((sum, v) => sum + (v.PrixVente || 0 - v.Coût), 0);
+            document.getElementById('total-profit-value').textContent = '$' + profitVendus.toLocaleString();
+            
+            // Dashboard détaillé
+            document.getElementById('total-vehicles').textContent = stock.length;
+            document.getElementById('total-cost').textContent = '$' + stock.reduce((sum, v) => sum + v.Coût, 0).toLocaleString();
+            document.getElementById('total-sales').textContent = '$' + vendus.reduce((sum, v) => sum + (v.PrixVente || 0), 0).toLocaleString();
+            
+            const avgProfit = vendus.length > 0 ? profitVendus / vendus.length : 0;
+            document.getElementById('average-profit').textContent = '$' + avgProfit.toLocaleString();
+        }
+
+        // Fonction de recherche
+        function searchStock() {
+            const searchTerm = document.getElementById('search-stock').value.toLowerCase();
+            const tbody = document.getElementById('stock-table');
+            tbody.innerHTML = '';
+            
+            const filteredStock = stock.filter(vehicle => {
+                return vehicle.MR.toLowerCase().includes(searchTerm) ||
+                       vehicle.Marque.toLowerCase().includes(searchTerm) ||
+                       vehicle.Modèle.toLowerCase().includes(searchTerm) ||
+                       vehicle.Année.includes(searchTerm) ||
+                       vehicle.Fournisseur.toLowerCase().includes(searchTerm);
+            });
+            
+            filteredStock.forEach((vehicle, index) => {
+                const profit = (vehicle.PrixVente || 0) - vehicle.Coût;
+                const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${vehicle.MR}</td>
+                    <td>${vehicle.Marque}</td>
+                    <td>${vehicle.Modèle}</td>
+                    <td>${vehicle.Année}</td>
+                    <td>${vehicle.NIV}</td>
+                    <td>$${vehicle.Coût.toLocaleString()}</td>
+                    <td>$${(vehicle.PrixVente || 0).toLocaleString()}</td>
+                    <td class="${profitClass}">$${profit.toLocaleString()}</td>
+                    <td><span class="status-badge status-${vehicle.Statut.toLowerCase().replace(' ', '-') || 'en-stock'}">${vehicle.Statut}</span></td>
+                    <td>${vehicle.DateAchat || ''}</td>
+                    <td>${vehicle.Fournisseur || ''}</td>
+                    <td>
+                        <div class="action-buttons-cell">
+                            <button class="btn-small btn-edit" onclick="editVehicle(${stock.indexOf(vehicle)})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-small btn-delete" onclick="deleteVehicle(${stock.indexOf(vehicle)})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Fonctions pour le stock
+        function loadStock() {
+            searchStock(); // Réutilise la fonction de recherche
+            updateDashboard();
+        }
+
+        // Fonctions pour les factures
+        function loadInvoices() {
+            const tbody = document.getElementById('invoices-table');
+            tbody.innerHTML = '';
+            
+            invoices.forEach((invoice, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${invoice["Type de dépense"]}</td>
+                    <td>${invoice["Date"]}</td>
+                    <td>${invoice["No facture"]}</td>
+                    <td>${invoice["MR"] || ''}</td>
+                    <td>${invoice["Description"]}</td>
+                    <td>$${invoice["Montant ($)"].toLocaleString()}</td>
+                    <td>
+                        <div class="action-buttons-cell">
+                            <button class="btn-small btn-edit" onclick="editInvoice(${index})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-small btn-delete" onclick="deleteInvoice(${index})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Fonctions modales
+        function showVehicleForm() {
+            document.getElementById('vehicle-modal').classList.add('active');
+            document.getElementById('vehicle-modal-title').textContent = '➕ Ajouter Véhicule';
+            document.getElementById('vehicle-form').reset();
+        }
+
+        function hideVehicleForm() {
+            document.getElementById('vehicle-modal').classList.remove('active');
+        }
+
+        function showInvoiceForm() {
+            document.getElementById('invoice-modal').classList.add('active');
+            document.getElementById('invoice-modal-title').textContent = '➕ Ajouter Facture';
+            document.getElementById('invoice-form').reset();
+        }
+
+        function hideInvoiceForm() {
+            document.getElementById('invoice-modal').classList.remove('active');
+        }
+
+        // Fonctions de formulaire
+        document.getElementById('vehicle-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const vehicle = {
+                MR: document.getElementById('vehicle-mr').value,
+                Marque: document.getElementById('vehicle-marque').value,
+                Modèle: document.getElementById('vehicle-modele').value,
+                Année: document.getElementById('vehicle-annee').value,
+                NIV: document.getElementById('vehicle-niv').value,
+                Coût: parseFloat(document.getElementById('vehicle-cout').value),
+                PrixVente: parseFloat(document.getElementById('vehicle-prix-vente').value) || 0,
+                Statut: document.getElementById('vehicle-statut').value,
+                DateAchat: document.getElementById('vehicle-date-achat').value,
+                Fournisseur: document.getElementById('vehicle-fournisseur').value
+            };
+            
+            stock.push(vehicle);
+            loadStock();
+            hideVehicleForm();
+        });
+
+        document.getElementById('invoice-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const invoice = {
+                "Type de dépense": document.getElementById('invoice-type').value,
+                "Date": document.getElementById('invoice-date').value,
+                "No facture": document.getElementById('invoice-number').value,
+                "MR": document.getElementById('invoice-mr').value,
+                "Description": document.getElementById('invoice-description').value,
+                "Montant ($)": parseFloat(document.getElementById('invoice-amount').value)
+            };
+            
+            invoices.push(invoice);
+            loadInvoices();
+            hideInvoiceForm();
+        });
+
+        // Fonctions de modification et suppression
+        function editVehicle(index) {
+            const vehicle = stock[index];
+            document.getElementById('vehicle-mr').value = vehicle.MR;
+            document.getElementById('vehicle-marque').value = vehicle.Marque;
+            document.getElementById('vehicle-modele').value = vehicle.Modèle;
+            document.getElementById('vehicle-annee').value = vehicle.Année;
+            document.getElementById('vehicle-niv').value = vehicle.NIV;
+            document.getElementById('vehicle-cout').value = vehicle.Coût;
+            document.getElementById('vehicle-prix-vente').value = vehicle.PrixVente || '';
+            document.getElementById('vehicle-statut').value = vehicle.Statut;
+            document.getElementById('vehicle-date-achat').value = vehicle.DateAchat || '';
+            document.getElementById('vehicle-fournisseur').value = vehicle.Fournisseur || '';
+            
+            document.getElementById('vehicle-modal-title').textContent = '✏️ Modifier Véhicule';
+            document.getElementById('vehicle-modal').classList.add('active');
+            
+            // Stocker l'index pour la modification
+            document.getElementById('vehicle-form').setAttribute('data-edit-index', index);
+        }
+
+        function deleteVehicle(index) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce véhicule ?')) {
+                stock.splice(index, 1);
+                loadStock();
+            }
+        }
+
+        function editInvoice(index) {
+            const invoice = invoices[index];
+            document.getElementById('invoice-type').value = invoice["Type de dépense"];
+            document.getElementById('invoice-date').value = invoice["Date"];
+            document.getElementById('invoice-number').value = invoice["No facture"];
+            document.getElementById('invoice-mr').value = invoice["MR"] || '';
+            document.getElementById('invoice-description').value = invoice["Description"];
+            document.getElementById('invoice-amount').value = invoice["Montant ($)"];
+            
+            document.getElementById('invoice-modal-title').textContent = '✏️ Modifier Facture';
+            document.getElementById('invoice-modal').classList.add('active');
+            
+            // Stocker l'index pour la modification
+            document.getElementById('invoice-form').setAttribute('data-edit-index', index);
+        }
+
+        function deleteInvoice(index) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
+                invoices.splice(index, 1);
+                loadInvoices();
+            }
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStock();
+            loadInvoices();
+            updateDashboard();
+        });
+    </script>
+</body>
+<!-- Grid.js -->
+<link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+<script>
+// Conversion des données existantes pour Grid.js
+function getStockGridData() {
+    return stock.map(v => [
+        v.MR || '', v.Marque || '', v.Modèle || '', v.Année || '', v.NIV || '', v.Coût || '', v.PrixVente || '', (v.PrixVente && v.Coût ? (parseFloat(v.PrixVente)-parseFloat(v.Coût)).toFixed(2) : ''), v.Statut || '', v.DateAchat || '', v.Fournisseur || '', ''
+    ]);
+}
+
+let grid = null;
+function renderGrid() {
+    if (grid) grid.updateConfig({ data: getStockGridData() }).forceRender();
+    else {
+        grid = new gridjs.Grid({
+            columns: [
+                "MR", "Marque", "Modèle", "Année", "NIV", "Coût", "Prix Vente", "Profit", "Statut", "Date Achat", "Fournisseur", {
+                    name: "Actions",
+                    formatter: (_, row) => gridjs.html(`<button class='btn-small btn-edit' onclick='editRow(${row._index})'>✏️</button> <button class='btn-small btn-delete' onclick='deleteRow(${row._index})'>🗑️</button>`)
+                }
+            ],
+            data: getStockGridData(),
+            search: true,
+            pagination: { enabled: true, limit: 10 },
+            sort: true,
+            resizable: true,
+            style: { th: { 'background-color': '#34495e', color: 'white' } }
+        }).render(document.getElementById("gridjs-stock"));
+    }
+}
+
+function refreshGrid() {
+    renderGrid();
+}
+
+function addRowToGrid() {
+    stock.push({MR:'',Marque:'',Modèle:'',Année:'',NIV:'',Coût:'',PrixVente:'',Statut:'En stock',DateAchat:'',Fournisseur:''});
+    renderGrid();
+}
+
+function editRow(index) {
+    // Ouvre la modale des factures pour le véhicule sélectionné
+    const mr = stock[index].MR;
+    showFacturesModal(mr);
+}
+
+
+function deleteRow(index) {
+    if (confirm('Supprimer ce véhicule ?')) {
+        stock.splice(index, 1);
+        renderGrid();
+    }
+}
+
+window.onload = function() {
+    renderGrid();
+};
+</script>
+</html>
