@@ -25,9 +25,9 @@ function hideFacturesModal() {
 
 function renderFacturesVehiculeTable(mr) {
     const factures = facturesParVehicule[mr] || [];
-    let html = `<table style='width:100%;margin-bottom:10px'><thead><tr><th>Date</th><th>No Facture</th><th>Description</th><th>Montant</th><th>Actions</th></tr></thead><tbody>`;
+    let html = `<table style='width:100%;margin-bottom:10px'><thead><tr><th>Date</th><th>No Facture</th><th>Description</th><th>Actions</th></tr></thead><tbody>`;
     factures.forEach((f, i) => {
-        html += `<tr><td>${f.date||''}</td><td>${f.numero||''}</td><td>${f.description||''}</td><td>${f.montant||''}</td><td><button class='btn-small btn-edit' onclick='editFactureVehicule(${i})'>✏️</button> <button class='btn-small btn-delete' onclick='deleteFactureVehicule(${i})'>🗑️</button></td></tr>`;
+        html += `<tr><td>${f.date||''}</td><td>${f.numero||''}</td><td>${f.description||''}</td><td><button class='btn-small btn-edit' onclick='editFactureVehicule(${i})'>✏️</button> <button class='btn-small btn-delete' onclick='deleteFactureVehicule(${i})'>🗑️</button></td></tr>`;
     });
     html += `</tbody></table>`;
     document.getElementById('factures-vehicule-table').innerHTML = html;
@@ -36,7 +36,7 @@ function renderFacturesVehiculeTable(mr) {
 function addFactureToVehicule() {
     const mr = document.getElementById('factures-modal').getAttribute('data-mr');
     if (!facturesParVehicule[mr]) facturesParVehicule[mr] = [];
-    facturesParVehicule[mr].push({date:'',numero:'',description:'',montant:''});
+    facturesParVehicule[mr].push({date:'',numero:'',description:''});
     renderFacturesVehiculeTable(mr);
 }
 
@@ -652,23 +652,10 @@ function deleteFactureVehicule(index) {
                 <div class="stat-number" id="total-stock-count">33</div>
                 <div class="stat-label">Véhicules en Stock</div>
             </div>
-            
             <div class="stat-card" onclick="showTab('dashboard')">
                 <span class="stat-icon">✅</span>
                 <div class="stat-number" id="total-sold-count">46</div>
                 <div class="stat-label">Véhicules Vendus</div>
-            </div>
-            
-            <div class="stat-card" onclick="showTab('dashboard')">
-                <span class="stat-icon">💰</span>
-                <div class="stat-number" id="total-stock-value">$251,846</div>
-                <div class="stat-label">Valeur du Stock</div>
-            </div>
-            
-            <div class="stat-card" onclick="showTab('dashboard')">
-                <span class="stat-icon">📈</span>
-                <div class="stat-number" id="total-profit-value">$145,942</div>
-                <div class="stat-label">Profit Total</div>
             </div>
         </div>
 
@@ -1542,7 +1529,7 @@ function deleteFactureVehicule(index) {
 // Conversion des données existantes pour Grid.js
 function getStockGridData() {
     return stock.map(v => [
-        v.MR || '', v.Marque || '', v.Modèle || '', v.Année || '', v.NIV || '', v.Coût || '', v.PrixVente || '', (v.PrixVente && v.Coût ? (parseFloat(v.PrixVente)-parseFloat(v.Coût)).toFixed(2) : ''), v.Statut || '', v.DateAchat || '', v.Fournisseur || '', ''
+        v.MR || '', v.Marque || '', v.Modèle || '', v.Année || '', v.NIV || '', v.Statut || '', v.DateAchat || '', v.Fournisseur || '', ''
     ]);
 }
 
@@ -1552,7 +1539,7 @@ function renderGrid() {
     else {
         grid = new gridjs.Grid({
             columns: [
-                "MR", "Marque", "Modèle", "Année", "NIV", "Coût", "Prix Vente", "Profit", "Statut", "Date Achat", "Fournisseur", {
+                "MR", "Marque", "Modèle", "Année", "NIV", "Statut", "Date Achat", "Fournisseur", {
                     name: "Actions",
                     formatter: (_, row) => gridjs.html(`<button class='btn-small btn-edit' onclick='editRow(${row._index})'>✏️</button> <button class='btn-small btn-delete' onclick='deleteRow(${row._index})'>🗑️</button>`)
                 }
